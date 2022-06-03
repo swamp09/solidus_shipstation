@@ -15,6 +15,7 @@ module SolidusShipstation
       :api_key,
       :api_secret,
       :api_shipment_matcher,
+      :api_request_attempts,
       :error_handler,
       :shipment_notice_class
     )
@@ -22,6 +23,7 @@ module SolidusShipstation
     def initialize
       @api_batch_size = 100
       @api_sync_threshold = 7.days
+      @api_request_attempts = 1
       @error_handler = ->(_error, _extra = {}) {
         Rails.logger.error "#{error.inspect} (#{extra.inspect})"
       }
