@@ -26,7 +26,18 @@ module SolidusShipstation
         @response_body = response_body
         @response_headers = response_headers
 
-        super(response_body)
+        super(message_from_body)
+      end
+
+      private
+
+      def message_from_body
+        return unless @response_body
+
+        parsed_body = JSON.parse(@response_body)
+        exception_type = parsed_body.fetch('ExceptionType', 'Unknown Exception Type')
+        exception_message = parsed_body.fetch('ExceptionMessage', '')
+        "#{exception_type}: #{exception_message}"
       end
     end
   end
