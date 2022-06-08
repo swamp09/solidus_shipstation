@@ -50,6 +50,35 @@ RSpec.describe SolidusShipstation::Api::SyncShipmentsJob do
 
           expect(error_handler).to have_received(:call).with(error, {})
         end
+
+        it 'calls the error handler after a specified amount of retries' do
+          error_handler = instance_spy('Proc')
+          stub_configuration(error_handler: error_handler, api_request_attempts: 3)
+
+          # Reload the job since the api_request_attempts is set on class loading.
+          load 'app/jobs/solidus_shipstation/api/sync_shipments_job.rb'
+
+          shipment = create(:shipment) { |s| stub_syncability(s, true) }
+          error = SolidusShipstation::Api::RequestError.new(
+            response_code: 500,
+            response_headers: {},
+            response_body: '{"message":"Internal Server Error"}',
+          )
+          failing_batch_syncer = stub_failing_batch_syncer(error)
+
+          # Allow enqueued jobs, since we expect the job to queue
+          # retries.
+          perform_enqueued_jobs(queue: :default) do
+            described_class.perform_later([shipment])
+          end
+
+          expect(error_handler).to have_received(:call).once
+          expect(failing_batch_syncer).to have_received(:call).exactly(3).times
+        ensure
+          # Reset the api_request_attempts to default for next tests.
+          stub_configuration(api_request_attempts: 1)
+          load 'app/jobs/solidus_shipstation/api/sync_shipments_job.rb'
+        end
       end
     end
   end
