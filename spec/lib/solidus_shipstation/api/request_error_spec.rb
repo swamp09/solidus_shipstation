@@ -5,7 +5,7 @@ RSpec.describe SolidusShipstation::Api::RequestError do
         'HTTParty::Response',
         code: 500,
         headers: { 'Key' => 'Value' },
-        body: '{ "message": "Internal Server Error" }',
+        body: '{ "Message": "An error has occured.", "ExceptionMessage": "orders are required", "ExceptionType": "System.ArgumentException" }',
       )
 
       error = described_class.from_response(response)
@@ -13,8 +13,49 @@ RSpec.describe SolidusShipstation::Api::RequestError do
       expect(error).to have_attributes(
         response_code: 500,
         response_headers: { 'Key' => 'Value' },
-        response_body: '{ "message": "Internal Server Error" }',
+        response_body: '{ "Message": "An error has occured.", "ExceptionMessage": "orders are required", "ExceptionType": "System.ArgumentException" }',
       )
+    end
+  end
+
+  describe '.message' do
+    it 'returns the name of the exception if there is no message body' do
+      response = instance_double(
+        'HTTParty::Response',
+        code: 500,
+        headers: { 'Key' => 'Value' },
+        body: nil
+      )
+
+      error = described_class.from_response(response)
+
+      expect(error.message).to eq("SolidusShipstation::Api::RequestError")
+    end
+
+    it 'extracts both the ExceptionMessage and ExceptionType' do
+      response = instance_double(
+        'HTTParty::Response',
+        code: 500,
+        headers: { 'Key' => 'Value' },
+        body: '{ "Message": "An error has occured.", "ExceptionMessage": "orders are required", "ExceptionType": "System.ArgumentException" }',
+      )
+
+      error = described_class.from_response(response)
+
+      expect(error.message).to eq("System.ArgumentException: orders are required")
+    end
+
+    it 'doesn\'t fail when the ExceptionMessage and ExceptionType are missing' do
+      response = instance_double(
+        'HTTParty::Response',
+        code: 500,
+        headers: { 'Key' => 'Value' },
+        body: '{ "Message": "An error has occured." }',
+      )
+
+      error = described_class.from_response(response)
+
+      expect(error.message).to eq("Unknown Exception Type: ")
     end
   end
 end
