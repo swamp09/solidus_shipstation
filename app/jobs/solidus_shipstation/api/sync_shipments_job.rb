@@ -5,6 +5,10 @@ module SolidusShipstation
     class SyncShipmentsJob < ApplicationJob
       queue_as :default
 
+      retry_on StandardError, attempts: SolidusShipstation.config.api_request_attempts do |_job, error|
+        SolidusShipstation.config.error_handler.call(error, {})
+      end
+
       def perform(shipments)
         shipments = select_shipments(shipments)
         return if shipments.empty?
@@ -12,8 +16,6 @@ module SolidusShipstation
         sync_shipments(shipments)
       rescue RateLimitedError => e
         self.class.set(wait: e.retry_in).perform_later
-      rescue StandardError => e
-        SolidusShipstation.config.error_handler.call(e, {})
       end
 
       private

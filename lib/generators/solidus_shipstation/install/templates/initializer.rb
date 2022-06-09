@@ -64,4 +64,10 @@ SolidusShipstation.configure do |config|
   # config.error_handler = -> (error, context = {}) {
   #   Sentry.capture_exception(error, extra: context)
   # }
+
+  # API call attempts before reporting an error using the error
+  # handler. Using a larger number can decrease the throughput of your
+  # API but reduce the amount of false positives in your error
+  # reporting.
+  # config.api_request_attempts = 1
 end
